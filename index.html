@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CP World Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+
+    <style>
+        body { font-family: Arial; text-align: center; }
+        #map { height: 500px; width: 90%; margin: 20px auto; }
+        input, button { padding: 10px; margin: 5px; }
+    </style>
+</head>
+<body>
+
+<h2>Codeforces User Explorer</h2>
+
+<input type="text" id="handle" placeholder="Enter CF handle">
+<button onclick="findUser()">Search</button>
+<button onclick="loadAllUsers()">Show All Users</button>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+<script>
+    const map = L.map('map').setView([20, 77], 3);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = [];
+
+    function clearMarkers() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+    }
+
+    async function findUser() {
+        const handle = document.getElementById("handle").value.trim();
+
+        if (!handle) {
+            alert("Enter a handle");
+            return;
+        }
+
+        try {
+            const res = await fetch("http://127.0.0.1:8000/user/" + handle);
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            clearMarkers();
+
+            const lat = parseFloat(data.lat);
+            const lng = parseFloat(data.lng);
+
+            const marker = L.marker([lat, lng]).addTo(map)
+                .bindPopup(`<b>${data.handle}</b><br>${data.city}, ${data.country}`)
+                .openPopup();
+
+            markers.push(marker);
+
+            map.setView([lat, lng], 5);
+
+        } catch (err) {
+            alert("Backend error");
+        }
+    }
+
+    async function loadAllUsers() {
+        try {
+            const res = await fetch("http://127.0.0.1:8000/users");
+            const data = await res.json();
+
+            clearMarkers();
+
+            data.forEach(user => {
+                const lat = parseFloat(user.lat);
+                const lng = parseFloat(user.lng);
+
+                const marker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`<b>${user.handle}</b><br>${user.city}, ${user.country}`);
+
+                markers.push(marker);
+            });
+
+        } catch (err) {
+            alert("Error loading users");
+        }
+    }
+</script>
+
+</body>
+</html>
