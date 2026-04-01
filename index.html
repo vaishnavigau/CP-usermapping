@@ -13,7 +13,7 @@
 </head>
 <body>
 
-<h2>Codeforces User Explorer</h2>
+<h2>🌍 Codeforces User Explorer</h2>
 
 <input type="text" id="handle" placeholder="Enter CF handle">
 <button onclick="findUser()">Search</button>
@@ -24,6 +24,8 @@
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
 <script>
+    const BASE_URL = "https://cp-usermapping.onrender.com";
+
     const map = L.map('map').setView([20, 77], 3);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -46,7 +48,10 @@
         }
 
         try {
-            const res = await fetch("http://127.0.0.1:8000/user/" + handle);
+            // wake up backend (important for Render)
+            await fetch(BASE_URL);
+
+            const res = await fetch(`${BASE_URL}/user/${handle}`);
             const data = await res.json();
 
             if (data.error) {
@@ -56,34 +61,30 @@
 
             clearMarkers();
 
-            const lat = parseFloat(data.lat);
-            const lng = parseFloat(data.lng);
-
-            const marker = L.marker([lat, lng]).addTo(map)
+            const marker = L.marker([data.lat, data.lng]).addTo(map)
                 .bindPopup(`<b>${data.handle}</b><br>${data.city}, ${data.country}`)
                 .openPopup();
 
             markers.push(marker);
 
-            map.setView([lat, lng], 5);
+            map.setView([data.lat, data.lng], 5);
 
         } catch (err) {
-            alert("Backend error");
+            alert("Backend sleeping, try again in few seconds");
         }
     }
 
     async function loadAllUsers() {
         try {
-            const res = await fetch("http://127.0.0.1:8000/users");
+            await fetch(BASE_URL);
+
+            const res = await fetch(`${BASE_URL}/users`);
             const data = await res.json();
 
             clearMarkers();
 
             data.forEach(user => {
-                const lat = parseFloat(user.lat);
-                const lng = parseFloat(user.lng);
-
-                const marker = L.marker([lat, lng]).addTo(map)
+                const marker = L.marker([user.lat, user.lng]).addTo(map)
                     .bindPopup(`<b>${user.handle}</b><br>${user.city}, ${user.country}`);
 
                 markers.push(marker);
